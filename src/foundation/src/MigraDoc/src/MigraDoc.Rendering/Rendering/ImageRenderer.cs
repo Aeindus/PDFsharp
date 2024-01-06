@@ -34,13 +34,17 @@ namespace MigraDoc.Rendering
         internal override void Format(Area area, FormatInfo? previousFormatInfo)
         {
             _imageFilePath = _image.GetFilePath(_documentRenderer.WorkingDirectory);
-            // The Image is stored in the string if path starts with "base64:", otherwise we check whether the file exists.
-            if (!_imageFilePath.StartsWith("base64:", StringComparison.Ordinal) &&
+
+            if (!_image.StreamBased) {
+                // The Image is stored in the string if path starts with "base64:", otherwise we check whether the file exists.
+                if (!_imageFilePath.StartsWith("base64:", StringComparison.Ordinal) &&
                 !XImage.ExistsFile(_imageFilePath))
             {
-                _failure = ImageFailure.FileNotFound;
-                Debug.WriteLine(Messages2.ImageNotFound(_image.Name), "warning");
+                    _failure = ImageFailure.FileNotFound;
+                    Debug.WriteLine(Messages2.ImageNotFound(_image.Name), "warning");
+                }
             }
+
             ImageFormatInfo formatInfo = (ImageFormatInfo)_renderInfo.FormatInfo;
             formatInfo.Failure = _failure;
             formatInfo.ImagePath = _imageFilePath;
@@ -69,7 +73,7 @@ namespace MigraDoc.Rendering
         internal override void Render()
         {
             RenderFilling();
-
+            
             ImageFormatInfo formatInfo = (ImageFormatInfo)_renderInfo.FormatInfo;
             Area contentArea = _renderInfo.LayoutInfo.ContentArea;
             XRect destRect = new XRect(contentArea.X, contentArea.Y, formatInfo.Width, formatInfo.Height);
@@ -81,7 +85,13 @@ namespace MigraDoc.Rendering
                 {
                     XRect srcRect = new(formatInfo.CropX, formatInfo.CropY, formatInfo.CropWidth, formatInfo.CropHeight);
                     //xImage = XImage.FromFile(formatInfo.ImagePath);
-                    xImage = CreateXImage(formatInfo.ImagePath);
+
+                    if (_image.StreamBased) {
+                        xImage = XImage.FromStream(_image.ImageStream);
+                    } else {
+                        xImage = CreateXImage(formatInfo.ImagePath);
+                    }
+
                     _gfx.DrawImage(xImage, destRect, srcRect, XGraphicsUnit.Point); //Pixel.
                 }
                 catch (Exception)
@@ -141,7 +151,12 @@ namespace MigraDoc.Rendering
                 try
                 {
                     //xImage = XImage.FromFile(_imageFilePath);
-                    xImage = CreateXImage(_imageFilePath);
+
+                    if (_image.StreamBased) {
+                        xImage = XImage.FromStream(_image.ImageStream);
+                    } else {
+                        xImage = CreateXImage(_imageFilePath);
+                    }
                 }
                 catch (InvalidOperationException ex)
                 {

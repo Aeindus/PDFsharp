@@ -6,8 +6,14 @@ namespace MigraDoc.DocumentObjectModel.Shapes
     /// <summary>
     /// Represents an image in the document or paragraph.
     /// </summary>
-    public class Image : Shape
-    {
+    public class Image : Shape {
+        public MemoryStream ImageStream { get; }
+
+        public bool StreamBased {
+            get { return ImageStream != null; }
+        }
+
+
         /// <summary>
         /// Initializes a new instance of the Image class.
         /// </summary>
@@ -15,6 +21,12 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         {
             BaseValues = new ImageValues(this);
         }
+
+        public Image(MemoryStream imageStream) : this() {
+            ImageStream = imageStream;   // Added new property to hold the stream
+            Name = string.Empty;
+        }
+
 
         /// <summary>
         /// Initializes a new instance of the Image class with the specified parent.
@@ -143,8 +155,9 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         /// Gets the concrete image path, taking into account the DOM document's DdlFile and
         /// ImagePath properties as well as the given working directory (which can be null).
         /// </summary>
-        public string GetFilePath(string workingDir)
-        {
+        public string GetFilePath(string workingDir) {
+            if (StreamBased) return string.Empty;
+
             if (Name.StartsWith("base64:", StringComparison.Ordinal)) // The file is stored in the string here, so we don't have to add a path.
                 return Name;
 

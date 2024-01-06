@@ -100,6 +100,13 @@ namespace MigraDoc.DocumentObjectModel.Tables
             get
             {
                 // Set in ResetCachedValues.
+                if (_table != null) return _table!;
+
+                var castedParent = Parent as Rows;
+                if (castedParent != null) {
+                    _table = castedParent.Table;
+                }
+
                 return _table!;
             }
         }
