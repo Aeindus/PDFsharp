@@ -6,8 +6,8 @@ namespace MigraDoc.DocumentObjectModel.Shapes
     /// <summary>
     /// Represents an image in the document or paragraph.
     /// </summary>
-    public class Image : Shape {
-        public MemoryStream ImageStream { get; }
+    public class Image : Shape, IDisposable {
+        public MemoryStream? ImageStream { get; }
 
         public bool StreamBased {
             get { return ImageStream != null; }
@@ -194,6 +194,10 @@ namespace MigraDoc.DocumentObjectModel.Shapes
                 filePath = Path.Combine(filePath, Name);
 
             return filePath;
+        }
+
+        public void Dispose() {
+            ImageStream?.Dispose();
         }
 
         /// <summary>
