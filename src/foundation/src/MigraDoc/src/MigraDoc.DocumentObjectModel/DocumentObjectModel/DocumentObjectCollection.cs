@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.DocumentObjectModel.Visitors;
 
@@ -11,8 +12,10 @@ namespace MigraDoc.DocumentObjectModel
     /// <summary>
     /// Base class of all collections of the MigraDoc Document Object Model.
     /// </summary>
-    public abstract class DocumentObjectCollection : DocumentObject, IList<DocumentObject?>, IVisitable
+    public abstract class DocumentObjectCollection : DocumentObject, IList<DocumentObject?>, IVisitable, IDisposable
     {
+        private bool _isDisposed;
+
         /// <summary>
         /// Initializes a new instance of the DocumentObjectCollection class.
         /// </summary>
@@ -379,6 +382,17 @@ namespace MigraDoc.DocumentObjectModel
         {
             //Meta.SetNull(this);
             _elements.Clear();
+        }
+
+        public void Dispose() {
+            if (_isDisposed) return;
+            _isDisposed = true;
+
+            foreach (var item in _elements) {
+                if(item is Image castedImage){
+                    castedImage.Dispose();
+                }
+            }
         }
     }
 }
