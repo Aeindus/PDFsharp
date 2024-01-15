@@ -10,8 +10,10 @@ namespace MigraDoc.DocumentObjectModel.Shapes
     /// <summary>
     /// Represents a text frame that can be freely placed.
     /// </summary>
-    public class TextFrame : Shape, IVisitable
+    public class TextFrame : Shape, IVisitable, IDisposable
     {
+        private bool _isDisposed;
+
         /// <summary>
         /// Initializes a new instance of the TextFrame class.
         /// </summary>
@@ -221,6 +223,13 @@ namespace MigraDoc.DocumentObjectModel.Shapes
             serializer.BeginContent();
             Values.Elements?.Serialize(serializer);
             serializer.EndContent();
+        }
+
+        public void Dispose() {
+            if (_isDisposed) return;
+            _isDisposed = true;
+
+            Elements.Dispose();
         }
 
         /// <summary>
