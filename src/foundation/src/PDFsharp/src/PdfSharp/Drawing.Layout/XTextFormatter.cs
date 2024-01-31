@@ -5,20 +5,17 @@ using System;
 using System.Collections.Generic;
 using PdfSharp.Pdf.IO;
 
-namespace PdfSharp.Drawing.Layout
-{
+namespace PdfSharp.Drawing.Layout {
     /// <summary>
     /// Represents a very simple text formatter.
     /// If this class does not satisfy your needs on formatting paragraphs, I recommend taking a look
     /// at MigraDoc Foundation. Alternatively, you should copy this class in your own source code and modify it.
     /// </summary>
-    public class XTextFormatter
-    {
+    public class XTextFormatter {
         /// <summary>
         /// Initializes a new instance of the <see cref="XTextFormatter"/> class.
         /// </summary>
-        public XTextFormatter(XGraphics gfx)
-        {
+        public XTextFormatter(XGraphics gfx) {
             _gfx = gfx ?? throw new ArgumentNullException(nameof(gfx));
         }
 
@@ -28,8 +25,7 @@ namespace PdfSharp.Drawing.Layout
         /// Gets or sets the text.
         /// </summary>
         /// <value>The text.</value>
-        public string Text
-        {
+        public string Text {
             get => _text;
             set => _text = value;
         }
@@ -38,11 +34,9 @@ namespace PdfSharp.Drawing.Layout
         /// <summary>
         /// Gets or sets the font.
         /// </summary>
-        public XFont Font
-        {
+        public XFont Font {
             get => _font;
-            set
-            {
+            set {
                 _font = value ?? throw new ArgumentNullException("Font");
 
                 _lineSpace = _font.GetHeight(); // old: _font.GetHeight(_gfx);
@@ -64,8 +58,7 @@ namespace PdfSharp.Drawing.Layout
         /// <summary>
         /// Gets or sets the bounding box of the layout.
         /// </summary>
-        public XRect LayoutRectangle
-        {
+        public XRect LayoutRectangle {
             get => _layoutRectangle;
             set => _layoutRectangle = value;
         }
@@ -75,13 +68,64 @@ namespace PdfSharp.Drawing.Layout
         /// <summary>
         /// Gets or sets the alignment of the text.
         /// </summary>
-        public XParagraphAlignment Alignment
-        {
+        public XParagraphAlignment Alignment {
             get => _alignment;
             set => _alignment = value;
         }
 
         XParagraphAlignment _alignment = XParagraphAlignment.Left;
+
+        /// <returns>Units in points</returns>
+        public double MeasureStringAlongHeight(string text, double width, XFont font) {
+            if (text == null)
+                throw new ArgumentNullException(nameof(text));
+            if (font == null)
+                throw new ArgumentNullException(nameof(font));
+            if (width == 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+
+            Text = text;
+            Font = font;
+
+            if (text.Length == 0)
+                return 0;
+
+            CreateBlocks();
+
+            return MeasureHeight(width);
+        }
+
+        private double MeasureHeight(double rectWidth) {
+            double x = 0;
+            double y = 0;
+
+            for (int idx = 0; idx < _blocks.Count; idx++) {
+                Block block = _blocks[idx];
+
+                if (block.Type == BlockType.LineBreak) {
+                    x = 0;
+                    y += _lineSpace;
+                } else {
+                    double width = block.Width;
+
+                    if (x + width <= rectWidth || x == 0) {
+                        block.Location = new XPoint(x, y);
+                        x += width + _spaceWidth;
+                    } else {
+                        y += _lineSpace;
+
+                        block.Location = new XPoint(0, y);
+                        x = width + _spaceWidth;
+                    }
+                }
+            }
+
+            // Add another height of text row because y counts the height needed for a row after a break appears
+            // and it counts it for the previous row not for next one which means there's always a row height's missing
+            return _spaceWidth + y;
+        }
+
+
 
         /// <summary>
         /// Draws the text.
@@ -90,8 +134,7 @@ namespace PdfSharp.Drawing.Layout
         /// <param name="font">The font.</param>
         /// <param name="brush">The text brush.</param>
         /// <param name="layoutRectangle">The layout rectangle.</param>
-        public void DrawString(string text, XFont font, XBrush brush, XRect layoutRectangle)
-        {
+        public void DrawString(string text, XFont font, XBrush brush, XRect layoutRectangle) {
             DrawString(text, font, brush, layoutRectangle, XStringFormats.TopLeft);
         }
 
@@ -103,8 +146,7 @@ namespace PdfSharp.Drawing.Layout
         /// <param name="brush">The text brush.</param>
         /// <param name="layoutRectangle">The layout rectangle.</param>
         /// <param name="format">The format. Must be <c>XStringFormat.TopLeft</c></param>
-        public void DrawString(string text, XFont font, XBrush brush, XRect layoutRectangle, XStringFormat format)
-        {
+        public void DrawString(string text, XFont font, XBrush brush, XRect layoutRectangle, XStringFormat format) {
             if (text == null)
                 throw new ArgumentNullException(nameof(text));
             if (font == null)
@@ -128,8 +170,7 @@ namespace PdfSharp.Drawing.Layout
             double dx = layoutRectangle.Location.X;
             double dy = layoutRectangle.Location.Y + _cyAscent;
             int count = _blocks.Count;
-            for (int idx = 0; idx < count; idx++)
-            {
+            for (int idx = 0; idx < count; idx++) {
                 Block block = _blocks[idx];
                 if (block.Stop)
                     break;
@@ -139,27 +180,23 @@ namespace PdfSharp.Drawing.Layout
             }
         }
 
-        void CreateBlocks()
-        {
+        void CreateBlocks() {
             _blocks.Clear();
             int length = _text.Length;
             bool inNonWhiteSpace = false;
             int startIndex = 0, blockLength = 0;
-            for (int idx = 0; idx < length; idx++)
-            {
+
+            for (int idx = 0; idx < length; idx++) {
                 char ch = _text[idx];
 
                 // Treat CR and CRLF as LF
-                if (ch == Chars.CR)
-                {
+                if (ch == Chars.CR) {
                     if (idx < length - 1 && _text[idx + 1] == Chars.LF)
                         idx++;
                     ch = Chars.LF;
                 }
-                if (ch == Chars.LF)
-                {
-                    if (blockLength != 0)
-                    {
+                if (ch == Chars.LF) {
+                    if (blockLength != 0) {
                         string token = _text.Substring(startIndex, blockLength);
                         _blocks.Add(new Block(token, BlockType.Text,
                           _gfx.MeasureString(token, _font).Width));
@@ -169,74 +206,57 @@ namespace PdfSharp.Drawing.Layout
                     _blocks.Add(new Block(BlockType.LineBreak));
                 }
                 // The non-breaking space is whitespace, so we treat it like non-whitespace.
-                else if (ch != Chars.NonBreakableSpace && Char.IsWhiteSpace(ch))
-                {
-                    if (inNonWhiteSpace)
-                    {
+                else if (ch != Chars.NonBreakableSpace && Char.IsWhiteSpace(ch)) {
+                    if (inNonWhiteSpace) {
                         string token = _text.Substring(startIndex, blockLength);
                         _blocks.Add(new Block(token, BlockType.Text,
                           _gfx.MeasureString(token, _font).Width));
                         startIndex = idx + 1;
                         blockLength = 0;
-                    }
-                    else
-                    {
+                    } else {
                         blockLength++;
                     }
-                }
-                else
-                {
+                } else {
                     inNonWhiteSpace = true;
                     blockLength++;
                 }
             }
-            if (blockLength != 0)
-            {
+            if (blockLength != 0) {
                 string token = _text.Substring(startIndex, blockLength);
                 _blocks.Add(new Block(token, BlockType.Text,
                   _gfx.MeasureString(token, _font).Width));
             }
         }
 
-        void CreateLayout()
-        {
+        void CreateLayout() {
             double rectWidth = _layoutRectangle.Width;
             double rectHeight = _layoutRectangle.Height - _cyAscent - _cyDescent;
             int firstIndex = 0;
             double x = 0, y = 0;
             int count = _blocks.Count;
-            for (int idx = 0; idx < count; idx++)
-            {
+            for (int idx = 0; idx < count; idx++) {
                 Block block = _blocks[idx];
-                if (block.Type == BlockType.LineBreak)
-                {
+                if (block.Type == BlockType.LineBreak) {
                     if (Alignment == XParagraphAlignment.Justify)
                         _blocks[firstIndex].Alignment = XParagraphAlignment.Left;
                     AlignLine(firstIndex, idx - 1, rectWidth);
                     firstIndex = idx + 1;
                     x = 0;
                     y += _lineSpace;
-                    if (y > rectHeight)
-                    {
+                    if (y > rectHeight) {
                         block.Stop = true;
                         break;
                     }
-                }
-                else
-                {
+                } else {
                     double width = block.Width;
-                    if ((x + width <= rectWidth || x == 0) && block.Type != BlockType.LineBreak)
-                    {
+                    if ((x + width <= rectWidth || x == 0) && block.Type != BlockType.LineBreak) {
                         block.Location = new XPoint(x, y);
                         x += width + _spaceWidth;
-                    }
-                    else
-                    {
+                    } else {
                         AlignLine(firstIndex, idx - 1, rectWidth);
                         firstIndex = idx;
                         y += _lineSpace;
-                        if (y > rectHeight)
-                        {
+                        if (y > rectHeight) {
                             block.Stop = true;
                             break;
                         }
@@ -252,8 +272,7 @@ namespace PdfSharp.Drawing.Layout
         /// <summary>
         /// Align center, right, or justify.
         /// </summary>
-        void AlignLine(int firstIndex, int lastIndex, double layoutWidth)
-        {
+        void AlignLine(int firstIndex, int lastIndex, double layoutWidth) {
             XParagraphAlignment blockAlignment = _blocks[firstIndex].Alignment;
             if (_alignment == XParagraphAlignment.Left || blockAlignment == XParagraphAlignment.Left)
                 return;
@@ -268,21 +287,17 @@ namespace PdfSharp.Drawing.Layout
 
             double dx = Math.Max(layoutWidth - totalWidth, 0);
             //Debug.Assert(dx >= 0);
-            if (_alignment != XParagraphAlignment.Justify)
-            {
+            if (_alignment != XParagraphAlignment.Justify) {
                 if (_alignment == XParagraphAlignment.Center)
                     dx /= 2;
-                for (int idx = firstIndex; idx <= lastIndex; idx++)
-                {
+                for (int idx = firstIndex; idx <= lastIndex; idx++) {
                     Block block = _blocks[idx];
                     block.Location += new XSize(dx, 0);
                 }
-            }
-            else if (count > 1) // case: justify
-            {
+            } else if (count > 1) // case: justify
+              {
                 dx /= count - 1;
-                for (int idx = firstIndex + 1, i = 1; idx <= lastIndex; idx++, i++)
-                {
+                for (int idx = firstIndex + 1, i = 1; idx <= lastIndex; idx++, i++) {
                     Block block = _blocks[idx];
                     block.Location += new XSize(dx * i, 0);
                 }
@@ -291,24 +306,21 @@ namespace PdfSharp.Drawing.Layout
 
         readonly List<Block> _blocks = new List<Block>();
 
-        enum BlockType
-        {
+        enum BlockType {
             Text, Space, Hyphen, LineBreak,
         }
 
         /// <summary>
         /// Represents a single word.
         /// </summary>
-        class Block
-        {
+        class Block {
             /// <summary>
             /// Initializes a new instance of the <see cref="Block"/> class.
             /// </summary>
             /// <param name="text">The text of the block.</param>
             /// <param name="type">The type of the block.</param>
             /// <param name="width">The width of the text.</param>
-            public Block(string text, BlockType type, double width)
-            {
+            public Block(string text, BlockType type, double width) {
                 Text = text;
                 Type = type;
                 Width = width;
@@ -318,8 +330,7 @@ namespace PdfSharp.Drawing.Layout
             /// Initializes a new instance of the <see cref="Block"/> class.
             /// </summary>
             /// <param name="type">The type.</param>
-            public Block(BlockType type)
-            {
+            public Block(BlockType type) {
                 Type = type;
             }
 
