@@ -161,6 +161,14 @@ namespace MigraDoc.DocumentObjectModel.Tables
             get
             {
                 // Set in ResetCachedValues.
+                if (_table != null) 
+                    return _table!;
+                
+                var castedParent = Parent as Cells;
+                if (castedParent != null) {
+                    _table = castedParent.Table;
+                }
+
                 return _table!;
             }
         }
@@ -199,6 +207,14 @@ namespace MigraDoc.DocumentObjectModel.Tables
             get
             {
                 // Set in ResetCachedValues.
+                if (_row != null)
+                    return _row!;
+
+                var castedParent = Parent as Cells;
+                if (castedParent != null) {
+                    _row = castedParent.Row;
+                }
+
                 return _row!;
             }
         }
