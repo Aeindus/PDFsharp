@@ -119,6 +119,9 @@ namespace MigraDoc.DocumentObjectModel.Tables
         public Image AddImage(string fileName)
             => Elements.AddImage(fileName);
 
+        public Image AddImage(MemoryStream stream)
+            => Elements.AddImage(stream);
+
         /// <summary>
         /// Adds a new text frame to the cell.
         /// </summary>

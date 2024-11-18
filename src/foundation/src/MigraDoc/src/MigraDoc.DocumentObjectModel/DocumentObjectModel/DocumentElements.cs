@@ -37,7 +37,7 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Creates a deep copy of this object.
         /// </summary>
-        public new DocumentElements Clone() 
+        public new DocumentElements Clone()
             => (DocumentElements)DeepCopy();
 
         /// <summary>
@@ -144,6 +144,12 @@ namespace MigraDoc.DocumentObjectModel
             {
                 Name = name
             };
+            Add(image);
+            return image;
+        }
+
+        public Image AddImage(MemoryStream stream) {
+            var image = new Image(stream);
             Add(image);
             return image;
         }

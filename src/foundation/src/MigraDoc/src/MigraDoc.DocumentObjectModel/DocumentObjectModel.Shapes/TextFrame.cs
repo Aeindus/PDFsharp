@@ -84,6 +84,9 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         public Image AddImage(string fileName) 
             => Elements.AddImage(fileName);
 
+        public Image AddImage(MemoryStream stream)
+            => Elements.AddImage(stream);
+
         /// <summary>
         /// Adds a new paragraph to the text frame.
         /// </summary>
